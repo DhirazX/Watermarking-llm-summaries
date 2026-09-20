@@ -1,6 +1,7 @@
 # Import summarization model
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 import torch
+from watermark import apply_watermark
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
 def get_model():
     # bart is already fine tuned for summarization
@@ -23,6 +24,23 @@ def summarize(article, tokenizer, model, device):
     return summary
 
 
+def summarize_watermarked(article, tokenizer, model, device):
+    inputs = tokenizer(article, max_length=1024, truncation=True, return_tensors="pt").to(device)
+
+    def wm_processor(input_ids, scores):
+        return apply_watermark(input_ids, scores)
+
+    output = model.generate(
+        **inputs,
+        max_length=128,
+        num_beams=4,
+        logits_processor=[wm_processor],
+    )
+
+    summary = tokenizer.decode(output[0], skip_special_tokens=True)
+    return summary
+
+
 if __name__ == "__main__":
     tokenizer, model, device = get_model()
 
@@ -30,3 +48,4 @@ if __name__ == "__main__":
 
     print("device:", device)
     print("summary:", summarize(test_article, tokenizer, model, device))
+    print("watermarked summary:", summarize_watermarked(test_article, tokenizer, model, device))

@@ -21,14 +21,15 @@ def get_green_list(prev_token, vocab_size=VOCAB_SIZE, gamma=GAMMA, seed_key=SECR
 
 
 def apply_watermark(input_ids, scores, delta=DELTA):
-    # scores shape is (batch_size, vocab_size)
+    vocab_size = scores.shape[-1]  
+
     for i in range(input_ids.shape[0]):
         prev_token = input_ids[i][-1]
-        green_ids = get_green_list(prev_token)
+        green_ids = get_green_list(prev_token, vocab_size=vocab_size)
+        green_ids = green_ids.to(scores.device)  # move to same device as scores (cuda or cpu)
         scores[i][green_ids] += delta
 
     return scores
-
 
 # quick test
 if __name__ == "__main__":
